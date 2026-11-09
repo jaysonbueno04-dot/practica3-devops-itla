@@ -15,6 +15,11 @@ tareas, además de los endpoints `/health` y `/metrics`. Se añadió
 el identificador no existe. El identificador se incrementa de forma monotónica
 para evitar colisiones después de eliminar tareas.
 
+GitHub Pages aloja solo archivos estáticos y no ejecuta Express. Por ello, el
+frontend detecta Pages y usa `localStorage` para guardar, completar y eliminar
+tareas en el navegador; al ejecutar la aplicación con `npm start`, usa la API
+Express. Los datos del modo Pages no se sincronizan con el servidor.
+
 Las pruebas de integración usan Jest y Supertest. Cubren la salud de la
 aplicación, creación y validación de tareas, cambio de estado, eliminación,
 respuestas ante identificadores inexistentes y métricas.

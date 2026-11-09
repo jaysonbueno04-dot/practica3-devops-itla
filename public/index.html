@@ -4,36 +4,122 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tareas DevOps — ITLA</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9C%93%3C/text%3E%3C/svg%3E">
   <style>
     body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
     h1 { color: #1f3b63; } li.hecha { text-decoration: line-through; color: #777; }
     form { display: flex; gap: 8px; } input { flex: 1; padding: 8px; } button { padding: 8px 14px; }
+    li { margin: 8px 0; } li button { margin-left: 8px; }
   </style>
 </head>
 <body>
   <h1>Lista de tareas</h1>
-  <p id="aviso">Versión estática (GitHub Pages). Ejecuta <code>npm start</code> para usar la API.</p>
+  <p id="aviso" role="status"></p>
   <form id="f"><input id="t" placeholder="Nueva tarea" required><button>Agregar</button></form>
   <ul id="l"></ul>
   <script>
     const l = document.getElementById('l');
+    const aviso = document.getElementById('aviso');
+    const esGitHubPages = location.hostname.endsWith('.github.io');
+    const claveLocal = 'tareas-devops-itla';
+    let tareas = [];
+
+    function mostrarError(error) {
+      aviso.hidden = false;
+      aviso.textContent = `No se pudo completar la operación: ${error.message}`;
+    }
+
+    function renderizar() {
+      l.replaceChildren();
+      tareas.forEach(tarea => {
+        const li = document.createElement('li');
+        const titulo = document.createElement('span');
+        titulo.textContent = tarea.titulo;
+        if (tarea.completada) li.className = 'hecha';
+
+        const cambiarEstado = document.createElement('button');
+        cambiarEstado.type = 'button';
+        cambiarEstado.textContent = tarea.completada ? 'Reabrir' : 'Completar';
+        cambiarEstado.onclick = async () => {
+          try {
+            if (esGitHubPages) {
+              tareas = tareas.map(t => t.id === tarea.id ? { ...t, completada: !t.completada } : t);
+              localStorage.setItem(claveLocal, JSON.stringify(tareas));
+              renderizar();
+            } else {
+              const respuesta = await fetch(`/api/tareas/${tarea.id}`, { method: 'PATCH' });
+              if (!respuesta.ok) throw new Error(`API respondió ${respuesta.status}`);
+              await cargar();
+            }
+          } catch (error) {
+            mostrarError(error);
+          }
+        };
+
+        const eliminar = document.createElement('button');
+        eliminar.type = 'button';
+        eliminar.textContent = 'Eliminar';
+        eliminar.onclick = async () => {
+          try {
+            if (esGitHubPages) {
+              tareas = tareas.filter(t => t.id !== tarea.id);
+              localStorage.setItem(claveLocal, JSON.stringify(tareas));
+              renderizar();
+            } else {
+              const respuesta = await fetch(`/api/tareas/${tarea.id}`, { method: 'DELETE' });
+              if (!respuesta.ok) throw new Error(`API respondió ${respuesta.status}`);
+              await cargar();
+            }
+          } catch (error) {
+            mostrarError(error);
+          }
+        };
+
+        li.append(titulo, cambiarEstado, eliminar);
+        l.appendChild(li);
+      });
+    }
+
     async function cargar() {
       try {
-        const r = await fetch('/api/tareas'); if (!r.ok) throw 0;
-        document.getElementById('aviso').hidden = true;
-        l.innerHTML = '';
-        (await r.json()).forEach(t => {
-          const li = document.createElement('li'); li.textContent = t.titulo;
-          if (t.completada) li.className = 'hecha';
-          li.onclick = async () => { await fetch('/api/tareas/' + t.id, { method: 'PATCH' }); cargar(); };
-          l.appendChild(li);
-        });
-      } catch (e) { /* sin API: modo estático */ }
+        if (esGitHubPages) {
+          const guardadas = JSON.parse(localStorage.getItem(claveLocal) || '[]');
+          if (!Array.isArray(guardadas)) throw new Error('Los datos guardados no tienen un formato válido');
+          tareas = guardadas;
+          aviso.hidden = false;
+          aviso.textContent = 'Modo GitHub Pages: las tareas se guardan en este navegador.';
+        } else {
+          const respuesta = await fetch('/api/tareas');
+          if (!respuesta.ok) throw new Error(`API respondió ${respuesta.status}`);
+          tareas = await respuesta.json();
+          aviso.hidden = true;
+        }
+        renderizar();
+      } catch (error) {
+        mostrarError(error);
+      }
     }
     document.getElementById('f').onsubmit = async e => {
       e.preventDefault();
-      await fetch('/api/tareas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ titulo: document.getElementById('t').value }) });
-      document.getElementById('t').value = ''; cargar();
+      const entrada = document.getElementById('t');
+      try {
+        if (esGitHubPages) {
+          tareas.push({ id: Date.now(), titulo: entrada.value.trim(), completada: false });
+          localStorage.setItem(claveLocal, JSON.stringify(tareas));
+          renderizar();
+        } else {
+          const respuesta = await fetch('/api/tareas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ titulo: entrada.value })
+          });
+          if (!respuesta.ok) throw new Error(`API respondió ${respuesta.status}`);
+          await cargar();
+        }
+        entrada.value = '';
+      } catch (error) {
+        mostrarError(error);
+      }
     };
     cargar();
   </script>

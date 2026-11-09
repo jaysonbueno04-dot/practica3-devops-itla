@@ -56,6 +56,11 @@ Source: GitHub Actions**. Consulta los detalles de pruebas y contribución en
 [CONTRIBUTING.md](./CONTRIBUTING.md) y el resumen de implementación en
 [docs/INFORME.md](./docs/INFORME.md).
 
+En GitHub Pages la API de Express no se ejecuta: el sitio permite agregar,
+completar y eliminar tareas usando el almacenamiento local del navegador. Esas
+tareas son propias del navegador y no se sincronizan con la API. Para usar la
+API compartida por el servidor, ejecuta `npm start` y abre `http://localhost:3000`.
+
 ## Evidencia de la demostración
 
 Incluye en la entrega capturas o enlaces a dos ejecuciones de Actions: una
