@@ -8,7 +8,7 @@ Aplicación web mínima (lista de tareas) con todo lo necesario para practicar u
 | Frontend estático | `public/index.html` | Se publica en GitHub Pages |
 | Pruebas automatizadas | `tests/app.test.js` | Jest + Supertest con cobertura |
 | Contenedor | `Dockerfile` | Imagen de producción con *healthcheck* |
-| Pipeline | `.github/workflows/ci.yml` | Lint → pruebas → build Docker → deploy a Pages |
+| Pipeline | `.github/workflows/ci.yml` | Validar sintaxis → pruebas → build Docker → deploy a Pages |
 
 ## Requisitos (gratis)
 - Cuenta de **GitHub** (usa un repositorio **público**: GitHub Actions es gratuito).
@@ -20,7 +20,7 @@ npm install
 npm test          # pruebas + cobertura
 npm start         # http://localhost:3000
 ```
-Endpoints: `GET /health`, `GET /metrics`, `GET/POST /api/tareas`, `PATCH /api/tareas/:id`.
+Endpoints: `GET /health`, `GET /metrics`, `GET/POST /api/tareas`, `PATCH /api/tareas/:id` y `DELETE /api/tareas/:id`.
 
 Con Docker:
 ```bash
@@ -42,11 +42,26 @@ docker run -p 3000:3000 tareas-devops
 3. En GitHub: **Settings → Pages → Source: GitHub Actions**.
 4. Abre la pestaña **Actions**: verás el workflow *CI/CD* ejecutándose. Cuando termine, la URL de tu página aparece en el job *Despliegue a GitHub Pages*.
 
-## Práctica 3 — qué debes agregar
-- Al menos **2 pruebas nuevas** (por ejemplo: borrar tareas, validar títulos largos).
-- Una funcionalidad nueva pequeña con su prueba (ej. `DELETE /api/tareas/:id`).
-- Provocar a propósito una prueba fallida, mostrar que el pipeline se pone en **rojo**, corregirla y mostrarlo en **verde**.
-- Completar este README con la explicación de cada etapa del pipeline.
+## Pipeline CI/CD
+
+El workflow se activa en cada `push` y `pull_request` dirigido a `main` o `principal`.
+El job **Build y pruebas** usa Ubuntu y Node.js 20, instala las dependencias desde
+`package-lock.json` con `npm ci`, valida la sintaxis con `npm run lint`, ejecuta
+`npm test` con cobertura y construye la imagen Docker. El job **Despliegue a
+GitHub Pages** depende de que el anterior termine correctamente y solo se ejecuta
+en un `push` a `main` o `principal`; publica el directorio `public`.
+
+Para activar Pages, selecciona **Settings → Pages → Build and deployment →
+Source: GitHub Actions**. Consulta los detalles de pruebas y contribución en
+[CONTRIBUTING.md](./CONTRIBUTING.md) y el resumen de implementación en
+[docs/INFORME.md](./docs/INFORME.md).
+
+## Evidencia de la demostración
+
+Incluye en la entrega capturas o enlaces a dos ejecuciones de Actions: una
+ejecución fallida por una prueba que hayas hecho fallar intencionalmente y la
+ejecución posterior exitosa después de corregirla. No dejes la prueba fallida
+en el código final.
 
 ## Proyecto Final — cómo extenderla
 - Persistencia con **SQLite** (o MongoDB) en lugar del arreglo en memoria.

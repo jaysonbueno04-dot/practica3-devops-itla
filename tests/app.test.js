@@ -22,6 +22,11 @@ describe('API de tareas', () => {
     expect(r.status).toBe(400);
   });
 
+  test('POST /api/tareas rechaza un título vacío después de quitar espacios', async () => {
+    const r = await request(app).post('/api/tareas').send({ titulo: '   ' });
+    expect(r.status).toBe(400);
+  });
+
   test('PATCH /api/tareas/:id alterna completada', async () => {
     await request(app).post('/api/tareas').send({ titulo: 'Escribir pruebas' });
     const r = await request(app).patch('/api/tareas/1');
@@ -30,6 +35,18 @@ describe('API de tareas', () => {
 
   test('PATCH de una tarea inexistente devuelve 404', async () => {
     const r = await request(app).patch('/api/tareas/99');
+    expect(r.status).toBe(404);
+  });
+
+  test('DELETE /api/tareas/:id elimina una tarea existente', async () => {
+    await request(app).post('/api/tareas').send({ titulo: 'Eliminar tarea' });
+    const r = await request(app).delete('/api/tareas/1');
+    expect(r.status).toBe(204);
+    expect((await request(app).get('/api/tareas')).body).toEqual([]);
+  });
+
+  test('DELETE /api/tareas/:id inexistente devuelve 404', async () => {
+    const r = await request(app).delete('/api/tareas/99');
     expect(r.status).toBe(404);
   });
 
